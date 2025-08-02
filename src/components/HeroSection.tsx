@@ -1,31 +1,34 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Cloud, Calendar, Book, ArrowRight, Sparkles } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import heroImage from "@/assets/hero-agriculture.jpg";
 
 const HeroSection = () => {
+  const { t } = useLanguage();
+
   const features = [
     {
       icon: Camera,
-      title: "AI Disease Detection",
+      title: t.diseaseDetection,
       description: "Upload crop photos for instant disease identification",
       color: "bg-success/10 text-success",
     },
     {
       icon: Cloud,
-      title: "Weather Insights",
+      title: t.weather,
       description: "Real-time weather data and crop care recommendations",
       color: "bg-accent/10 text-accent",
     },
     {
       icon: Calendar,
-      title: "Smart Calendar",
+      title: t.cropCalendar,
       description: "AI-powered planting schedules for Nigerian seasons",
       color: "bg-warning/10 text-warning",
     },
     {
       icon: Book,
-      title: "Treatment Library",
+      title: t.treatments,
       description: "Disease-specific remedies and prevention guides",
       color: "bg-primary/10 text-primary",
     },
@@ -51,22 +54,20 @@ const HeroSection = () => {
                 <span>AI-Powered Agriculture</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-                Smart Farming for
-                <span className="bg-gradient-hero bg-clip-text text-transparent"> Nigerian </span>
-                Agriculture
+                {t.heroTitle}
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
-                Detect crop diseases instantly, get weather insights, and optimize your harvest with AI technology designed specifically for Nigerian farmers.
+                {t.heroDescription}
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button variant="hero" size="lg" className="shadow-glow">
-                Start Disease Detection
+                {t.getStarted}
                 <ArrowRight className="w-5 h-5" />
               </Button>
               <Button variant="outline" size="lg" className="shadow-soft">
-                View Weather Forecast
+                {t.learnMore}
               </Button>
             </div>
 

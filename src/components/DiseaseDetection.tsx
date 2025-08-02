@@ -4,49 +4,24 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Camera, Upload, Loader2, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { diseaseDetectionService, DiseaseResult } from "@/lib/diseaseDetection";
 
 const DiseaseDetection = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [detectionResult, setDetectionResult] = useState<any>(null);
+  const [detectionResult, setDetectionResult] = useState<DiseaseResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
-  // Mock detection results - in real app, this would call your AI API
-  const mockDetectionResults = [
-    {
-      disease: "Late Blight",
-      confidence: 92,
-      severity: "High",
-      crop: "Tomato",
-      treatment: "Apply copper-based fungicide immediately. Remove affected leaves and improve air circulation.",
-      prevention: "Plant resistant varieties, ensure proper spacing, and avoid overhead watering.",
-      status: "critical"
-    },
-    {
-      disease: "Healthy Plant",
-      confidence: 96,
-      severity: "None",
-      crop: "Maize",
-      treatment: "No treatment needed. Continue regular care.",
-      prevention: "Maintain current practices. Monitor for any changes.",
-      status: "healthy"
-    },
-    {
-      disease: "Cassava Mosaic Disease",
-      confidence: 88,
-      severity: "Medium",
-      crop: "Cassava",
-      treatment: "Remove infected plants. Use virus-free planting material.",
-      prevention: "Plant certified disease-free cuttings and control whitefly vectors.",
-      status: "warning"
-    }
-  ];
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setSelectedImage(e.target?.result as string);
@@ -60,7 +35,7 @@ const DiseaseDetection = () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       // In a real app, this would open camera interface
       toast({
-        title: "Camera Feature",
+        title: t.loading,
         description: "Camera integration will be available in the mobile app version.",
       });
     } else {
@@ -73,35 +48,50 @@ const DiseaseDetection = () => {
   };
 
   const analyzeImage = async () => {
-    if (!selectedImage) return;
+    if (!selectedFile) return;
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);
+    setDetectionResult(null);
 
-    // Simulate AI analysis progress
-    const progressInterval = setInterval(() => {
-      setAnalysisProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          // Mock random result
-          const randomResult = mockDetectionResults[Math.floor(Math.random() * mockDetectionResults.length)];
-          setDetectionResult(randomResult);
-          setIsAnalyzing(false);
-          
-          toast({
-            title: "Analysis Complete",
-            description: `Disease detection completed with ${randomResult.confidence}% confidence.`,
-          });
-          
-          return 100;
-        }
-        return prev + 10;
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 500);
+
+      // Perform real AI analysis
+      const result = await diseaseDetectionService.detectDisease(selectedFile);
+      
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      setDetectionResult(result);
+      
+      toast({
+        title: t.success,
+        description: `${t.diseaseDetectionTitle} completed with ${result.confidence}% ${t.confidence.toLowerCase()}.`,
       });
-    }, 300);
+      
+    } catch (error) {
+      console.error('Disease detection error:', error);
+      toast({
+        title: t.error,
+        description: error instanceof Error ? error.message : "Failed to analyze image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (severity: string) => {
+    switch (severity) {
       case "healthy":
         return <CheckCircle className="w-6 h-6 text-success" />;
       case "warning":
@@ -113,8 +103,8 @@ const DiseaseDetection = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (severity: string) => {
+    switch (severity) {
       case "healthy":
         return "border-success bg-success/5";
       case "warning":
@@ -131,10 +121,10 @@ const DiseaseDetection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            AI-Powered Disease Detection
+            {t.diseaseDetectionTitle}
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Upload or capture photos of your crops to get instant disease identification and treatment recommendations.
+            {t.diseaseDetectionDesc}
           </p>
         </div>
 
@@ -142,7 +132,7 @@ const DiseaseDetection = () => {
           {/* Upload Section */}
           <Card className="p-8 space-y-6">
             <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4">Upload Crop Image</h3>
+              <h3 className="text-xl font-semibold mb-4">{t.uploadImage}</h3>
               
               {selectedImage ? (
                 <div className="space-y-4">
@@ -153,7 +143,10 @@ const DiseaseDetection = () => {
                   />
                   <div className="flex gap-3">
                     <Button 
-                      onClick={() => setSelectedImage(null)}
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setSelectedFile(null);
+                      }}
                       variant="outline"
                       className="flex-1"
                     >
@@ -168,7 +161,7 @@ const DiseaseDetection = () => {
                       {isAnalyzing ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Analyzing...
+                          {t.analyzing}...
                         </>
                       ) : (
                         "Analyze Disease"
@@ -191,14 +184,14 @@ const DiseaseDetection = () => {
                         variant="default"
                       >
                         <Upload className="w-4 h-4" />
-                        Upload Image
+                        {t.uploadImage}
                       </Button>
                       <Button 
                         onClick={handleCameraCapture}
                         variant="outline"
                       >
                         <Camera className="w-4 h-4" />
-                        Use Camera
+                        {t.useCamera}
                       </Button>
                     </div>
                   </div>
@@ -217,7 +210,7 @@ const DiseaseDetection = () => {
             {isAnalyzing && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span>Analyzing image...</span>
+                  <span>{t.analyzing}...</span>
                   <span>{analysisProgress}%</span>
                 </div>
                 <Progress value={analysisProgress} className="h-2" />
@@ -229,12 +222,12 @@ const DiseaseDetection = () => {
           </Card>
 
           {/* Results Section */}
-          <Card className={`p-8 ${detectionResult ? getStatusColor(detectionResult.status) : 'opacity-50'}`}>
+          <Card className={`p-8 ${detectionResult ? getStatusColor(detectionResult.severity) : 'opacity-50'}`}>
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
-                {detectionResult ? getStatusIcon(detectionResult.status) : <Info className="w-6 h-6 text-muted-foreground" />}
+                {detectionResult ? getStatusIcon(detectionResult.severity) : <Info className="w-6 h-6 text-muted-foreground" />}
                 <h3 className="text-xl font-semibold">
-                  {detectionResult ? "Detection Results" : "Analysis Results Will Appear Here"}
+                  {detectionResult ? t.diseaseResults : "Analysis Results Will Appear Here"}
                 </h3>
               </div>
 
@@ -243,29 +236,28 @@ const DiseaseDetection = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Disease</p>
-                      <p className="font-semibold">{detectionResult.disease}</p>
+                      <p className="font-semibold">{detectionResult.name}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Confidence</p>
+                      <p className="text-sm text-muted-foreground">{t.confidence}</p>
                       <p className="font-semibold">{detectionResult.confidence}%</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Crop Type</p>
-                      <p className="font-semibold">{detectionResult.crop}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Severity</p>
-                      <p className="font-semibold">{detectionResult.severity}</p>
+                      <p className="text-sm text-muted-foreground">{t.severity}</p>
+                      <p className="font-semibold">
+                        {detectionResult.severity === 'healthy' ? t.healthy : 
+                         detectionResult.severity === 'warning' ? t.warning : t.critical}
+                      </p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold text-foreground mb-2">Recommended Treatment</h4>
+                      <h4 className="font-semibold text-foreground mb-2">{t.treatment}</h4>
                       <p className="text-sm text-muted-foreground">{detectionResult.treatment}</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground mb-2">Prevention Tips</h4>
+                      <h4 className="font-semibold text-foreground mb-2">{t.prevention}</h4>
                       <p className="text-sm text-muted-foreground">{detectionResult.prevention}</p>
                     </div>
                   </div>
@@ -286,14 +278,11 @@ const DiseaseDetection = () => {
 
         {/* Tips Section */}
         <Card className="mt-12 p-6 bg-primary/5 border-primary/20">
-          <h4 className="font-semibold text-primary mb-3">📸 Photo Tips for Best Results</h4>
+          <h4 className="font-semibold text-primary mb-3">📸 {t.photoTipsTitle}</h4>
           <div className="grid md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-            <div>• Take photos in good natural light</div>
-            <div>• Focus on affected leaves or areas</div>
-            <div>• Hold camera steady and close</div>
-            <div>• Include multiple affected leaves</div>
-            <div>• Avoid blurry or dark images</div>
-            <div>• Show clear symptoms if present</div>
+            {t.photoTips.map((tip, index) => (
+              <div key={index}>• {tip}</div>
+            ))}
           </div>
         </Card>
       </div>
