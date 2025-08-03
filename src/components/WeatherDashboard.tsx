@@ -15,8 +15,10 @@ import {
   TrendingUp,
   AlertTriangle
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const WeatherDashboard = () => {
+  const { t } = useLanguage();
   const [currentLocation, setCurrentLocation] = useState("Lagos, Nigeria");
   const [weatherData, setWeatherData] = useState({
     current: {
@@ -104,10 +106,10 @@ const WeatherDashboard = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Smart Weather Dashboard
+            {t.weatherTitle}
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Get real-time weather data and AI-powered farming recommendations tailored to Nigerian agriculture.
+            {t.weatherDesc}
           </p>
         </div>
 
@@ -143,14 +145,14 @@ const WeatherDashboard = () => {
                   <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                     <Droplets className="w-5 h-5 text-blue-500" />
                     <div>
-                      <div className="text-sm text-muted-foreground">Humidity</div>
+                      <div className="text-sm text-muted-foreground">{t.humidity}</div>
                       <div className="font-semibold">{weatherData.current.humidity}%</div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                     <Wind className="w-5 h-5 text-green-500" />
                     <div>
-                      <div className="text-sm text-muted-foreground">Wind Speed</div>
+                      <div className="text-sm text-muted-foreground">{t.windSpeed}</div>
                       <div className="font-semibold">{weatherData.current.windSpeed} km/h</div>
                     </div>
                   </div>
@@ -164,7 +166,7 @@ const WeatherDashboard = () => {
                   <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                     <Thermometer className="w-5 h-5 text-red-500" />
                     <div>
-                      <div className="text-sm text-muted-foreground">Pressure</div>
+                      <div className="text-sm text-muted-foreground">{t.temperature}</div>
                       <div className="font-semibold">{weatherData.current.pressure} hPa</div>
                     </div>
                   </div>
@@ -199,7 +201,7 @@ const WeatherDashboard = () => {
           <Card className="p-8">
             <div className="flex items-center space-x-3 mb-6">
               <Calendar className="w-6 h-6 text-primary" />
-              <h3 className="text-xl font-semibold">AI Farming Recommendations</h3>
+              <h3 className="text-xl font-semibold">{t.recommendations}</h3>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
