@@ -6,6 +6,7 @@ import { Camera, Upload, Loader2, CheckCircle, AlertTriangle, Info } from "lucid
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { diseaseDetectionService, DiseaseResult } from "@/lib/diseaseDetection";
+import { supabase } from "@/integrations/supabase/client";
 
 const DiseaseDetection = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -13,9 +14,57 @@ const DiseaseDetection = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [detectionResult, setDetectionResult] = useState<DiseaseResult | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  const saveDiseaseRecord = async () => {
+    if (!detectionResult || !selectedImage) return;
+    
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save your disease detection records.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('disease_detections')
+        .insert({
+          user_id: user.id,
+          image_url: selectedImage,
+          disease_name: detectionResult.name,
+          confidence: detectionResult.confidence,
+          severity: detectionResult.severity,
+          treatment: detectionResult.treatment,
+          prevention: detectionResult.prevention,
+          crop_type: 'Unknown', // Could be enhanced to detect crop type
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Record Saved",
+        description: "Disease detection saved to your farm records successfully!",
+      });
+    } catch (error) {
+      console.error('Error saving disease record:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save the record. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,8 +311,20 @@ const DiseaseDetection = () => {
                     </div>
                   </div>
 
-                  <Button variant="success" className="w-full">
-                    Save to My Farm Records
+                  <Button 
+                    variant="success" 
+                    className="w-full"
+                    onClick={saveDiseaseRecord}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save to My Farm Records"
+                    )}
                   </Button>
                 </div>
               ) : (
